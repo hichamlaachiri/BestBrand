@@ -1,151 +1,188 @@
-# 📘 دليل مشروع BestBrand: نظام الربط والمزامنة الذكية لكاسة SMART GestCaisse
-### SMART GestCaisse Bridge & Local Real-Time Sync Agent Architecture Guide
+# 📘 BestBrand Architecture & Implementation Guide
+### SMART GestCaisse Bridge & Real-Time Local Sync Agent
 
 ---
 
-## 📑 فهرس المحتويات
-1. [نظرة عامة وفكرة المشروع (Project Overview)](#1-نظرة-عامة-وفكرة-المشروع)
-2. [الهندسة التقنية وطريقة العمل (How It Works & Architecture)](#2-الهندسة-التقنية-وطريقة-العمل)
-3. [المعدات والأجهزة الخارجية المطلوبة (Hardware & External Equipment)](#3-المعدات-والأجهزة-الخارجية-المطلوبة)
-4. [الخدمات الرقمية والـ APIs الخارجية (External Services & APIs)](#4-الخدمات-الرقمية-والـ-apis-الخارجية)
-5. [أفكار واقتراحات مستقبلية لتطوير المشروع (Suggested Ideas & Roadmap)](#5-أفكار-واقتراحات-مستقبلية-لتطوير-المشروع)
-6. [دليل أوامر التشغيل والاستخدام (Cheat Sheet)](#6-دليل-أوامر-التشغيل-والاستخدام)
+## 📑 Table of Contents
+1. [Executive Summary & Problem Statement](#1-executive-summary--problem-statement)
+2. [System Architecture & Workflow](#2-system-architecture--workflow)
+3. [HyperFileSQL (HFSQL) Reverse-Engineering Details](#3-hyperfilesql-hfsql-reverse-engineering-details)
+4. [External Hardware & Material Requirements](#4-external-hardware--material-requirements)
+5. [Cloud Services & External APIs](#5-cloud-services--external-apis)
+6. [Future Roadmap & Recommended Features](#6-future-roadmap--recommended-features)
+7. [CLI Commands & Operations Cheat Sheet](#7-cli-commands--operations-cheat-sheet)
 
 ---
 
-## 1. نظرة عامة وفكرة المشروع
+## 1. Executive Summary & Problem Statement
 
-**BestBrand** هو عبارة عن **Local Sync Agent (Bridge)** مبني بلغة Python، الهدف الأساسي منّو هو ربط وتطوير نقطة البيع المحلية **SMART GestCaisse** (المبنية بـ PC SOFT WinDev وقواعد بيانات HyperFileSQL) مع المتجر الإلكتروني الحديث (**WooCommerce / WordPress**) وأتمتة البحث عن صور وتفاصيل المنتجات.
+**BestBrand** is a high-performance Python-based **Local Sync Agent (Bridge)** designed for retail businesses using **SMART GestCaisse** (a Point of Sale system built with PC SOFT WinDev and proprietary HyperFileSQL database files). 
 
-### المشاكل اللي كايحلها المشروع:
-1. **ربح الوقت فـ إدخال السلع**: بدل ما الكاشير يدخل لـ Google ويقلب على تصاور كل صباط أو حذاء، بضغطة زر وحدة (**F2**) السكربت كيجيب 3 تصاور نقية وعالية الجودة ويفتح نافذة الاختيار مباشرة.
-2. **توحيد الموديلات وتوفير المساحة**: تجميع المقاسات المختلفة لنفس الموديل (بحال `6007640-110 40` و `6007640-110 44`) فـ مجلد صور واحد (`6007640_110`) وتفادي تكرار التحميل والبحث.
-3. **المزامنة اللحظية (Real-Time Sync)**: ملي كيتزاد منتج أو كيتبدل الثمن فـ الكاسة، كيدوز أوتوماتيكياً للمتجر الإلكتروني بلا ما تعاود تدخلو يدوياً.
-4. **حماية التزامن عند انقطاع النت (Offline Resilience)**: إلى طاح الـ Wifi، السكربت كيخزن العمليات فـ طابور محلي (`offline_queue`) وملي كترجع الكونيكسيون كيرفع كلشي أوتوماتيكياً.
+It bridges the offline physical POS counter with modern online e-commerce infrastructure (**WooCommerce / WordPress**) while automating product asset enrichment.
+
+### Core Problems Solved:
+1. **Catalog Data Entry Bottleneck**:
+   - Manually searching Google for product imagery across thousands of footwear and apparel references is tedious and slow.
+   - **Solution**: 1-touch hotkey (`F2`) inside GestCaisse automatically queries search engines, downloads the top 3 high-resolution candidate images, and navigates the Windows file dialog directly into the product folder for instant 1-click selection.
+2. **Duplicate Image Waste & Quota Exhaustion**:
+   - In clothing and shoe retail, each size variation (e.g. `6007640-110 40`, `6007640-110 42`, `6007640-110 44`) previously triggered separate image downloads.
+   - **Solution**: The engine normalizes references into clean parent models (e.g., `6007640_110`), sharing a single image set across all sizes.
+3. **Double Inventory Entry**:
+   - Stock and price changes had to be manually entered twice (once in GestCaisse and once on the website).
+   - **Solution**: The Real-Time Sync Agent watches local database files and pushes catalog and stock updates automatically to WooCommerce.
+4. **Internet Disruption Resilience (Offline Queueing)**:
+   - If store internet disconnects, updates are safely stored in a local `.sync_state.json` queue and automatically replayed once connection is restored.
 
 ---
 
-## 2. الهندسة التقنية وطريقة العمل
+## 2. System Architecture & Workflow
 
-### 🏗️ بنية المشروع (Architecture):
+### 🏗️ Project Layout:
 ```text
 BestBrand/
-├── main.py                     # المحرك الرئيسي وواجهة الأوامر (CLI & Background Daemon)
-├── run_bridge.bat              # مشغل فوري بنقرة واحدة (1-Click Launcher)
-├── requirements.txt            # المكتبات المعتمدة
-├── .env.example                # نموذج الإعدادات والمفاتيح
+├── main.py                     # CLI entrypoint & daemon lifecycle manager
+├── run_bridge.bat              # 1-click Windows launcher
+├── requirements.txt            # Python dependencies
+├── .env.example                # Configuration template
+├── PROJECT_GUIDE.md            # Comprehensive documentation
 ├── backend/
-│   ├── config.py               # الاكتشاف التلقائي للمسارات والإعدادات
-│   ├── scraper.py              # محرك البحث عن الصور وتنظيف مقاسات الأحذية والملابس
-│   ├── hfsql_reader.py         # ماسح الكتالوج الموحد لتنزيل الصور دفعة واحدة
+│   ├── config.py               # Auto-discovery of GestCaisse paths & settings
+│   ├── scraper.py              # Multi-engine image search & size normalization
+│   ├── hfsql_reader.py         # Batch image synchronizer
 │   └── sync/
-│       ├── local_reader.py     # قارئ الباينري لقواعد بيانات HFSQL بدون مكتبات خارجية
-│       ├── ecommerce_client.py # عميل WooCommerce REST API (Single, Batch, Media)
-│       └── sync_manager.py     # مراقب التغييرات اللحظية وإدارة طابور المزامنة
+│       ├── local_reader.py     # Binary HFSQL reader (Article.FIC, prix.FIC)
+│       ├── ecommerce_client.py # WooCommerce REST API client (Batch & Media upload)
+│       └── sync_manager.py     # Real-time state watcher & offline queue
 └── services/
-    └── background_worker.py    # إدارة نوافذ الويندوز والـ Hotkey F2 والحافظة
+    └── background_worker.py    # Windows automation (Win32 dialog, F2 hotkey, clipboard)
 ```
 
-### 🔬 الهندسة العكسية لقاعدة بيانات GestCaisse (HFSQL Reverse-Engineering):
-- **`Article.FIC`**: جدول المنتجات مبني بطول سجل ثابت (**Record Stride = 532 Bytes**). كيقرا منو السكربت:
-  - `Code Article`: كود المقال (مثل `AR0000002`).
-  - `Designation`: المرجع والمقاس (مثل `IH4302-012 S`).
-  - `Barcode`: كود الباركود (EAN-13 أو UPC).
-- **`prix.FIC`**: جدول الأثمنة بطول سجل ثابت (**Record Stride = 360 Bytes**) كيربط المرجع بالثمن بالدرهم.
-- **تجميع الموديلات (Parent Models)**: فحص 1,925 مقال محلي وتجميعهم إلى **1,314 موديل رئيسي**.
+### 🔄 End-to-End Workflow:
+```text
+[ Cashier in GestCaisse ]
+       │
+       ▼ (Press F2 Hotkey)
+[ services/background_worker.py ] ──► Auto-captures active reference (Ctrl+A / Ctrl+C)
+       │
+       ▼
+[ backend/scraper.py ] ──────────────► Normalizes SKU (strips shoe & apparel sizes)
+       │                              Queries Serper (Google) with Bing fallback
+       ▼                              Downloads 3 JPEG candidate images
+[ C:\SMART gestcaisse\Images\<SKU> ]
+       │
+       ▼
+[ Win32 Dialog Controller ] ─────────► Injects path into Windows Open File Dialog
+       │                              Cashier selects preferred image with 1 click
+       ▼
+[ backend/sync/sync_manager.py ] ────► Detects local changes, extracts price & barcode
+       │                              Uploads images to WordPress Media Library
+       ▼                              Pushes/Updates Product on WooCommerce
+[ Online WooCommerce Store ]
+```
 
 ---
 
-## 3. المعدات والأجهزة الخارجية المطلوبة (Hardware & External Equipment)
+## 3. HyperFileSQL (HFSQL) Reverse-Engineering Details
 
-باش تخدم نقطة البيع والمتجر بكفاءة احترافية، ها هو الماتريال الفيزيائي اللي غاتحتاج فـ المحل:
+Because compiled WinDev applications embed database analysis structures internally, we developed a high-speed, zero-dependency direct binary parser:
 
-### 1. كمبيوتر الكاسة (POS PC / Cashier Desktop)
-- **المواصفات المنصوح بها**:
-  - معالج Intel Core i3 / i5 (الجيل 6 فما فوق) أو AMD Ryzen.
-  - ذاكرة RAM: على الأقل **8 GB**.
-  - قرص صلب: **SSD** (ضروري جداً لسرعة قراءة ملفات HFSQL وتفادي الـ Lag).
-  - نظام تشغيل: **Windows 10 أو Windows 11 (64-bit)**.
-  - شاشة بدقة 1080p (Full HD) واضحة للكاشير.
-
-### 2. قارئ الباركود (Barcode Scanner / Douchette)
-- **النوع المفضل**: قارئ **1D/2D (QR Code & Barcode)** لاسلكي (Wireless 2.4GHz / Bluetooth) أو USB سلكي.
-- **طريقة العمل**: خاصو يكون مضبوط على وضع **Keyboard Emulation (HID)**، باش بمجرد ما تسكاني الصباط أو التيكيت كيتكتب الكود مباشرة فـ الحقل المخصص.
-- **أمثلة ممتازة**: Zebra DS2208، Honeywell Voyager 1400g، أو Netum / Datalogic.
-
-### 3. طابعة التوصيل الحرارية (Thermal Receipt Printer - 80mm)
-- **الاستعمال**: طباعة تذاكر الشراء للزبائن (Tickets de Caisse).
-- **المواصفات**: عرض الورق **80mm** مع قاطع تلقائي (Auto-Cutter) ومنفذ USB + منفذ RJ11 للدرج.
-- **أمثلة**: Epson TM-T20III، Xprinter XP-N160M / XP-Q200.
-
-### 4. طابعة ملصقات الباركود والأثمنة (Barcode Label Printer)
-- **الاستعمال**: طباعة ملصقات الباركود بمقاس الصباط، المرجع، والثمن للصقها على الصناديق أو الملابس.
-- **النوع**: Direct Thermal أو Thermal Transfer.
-- **قياس الملصقات الشائع**: 50x30 mm أو 40x25 mm.
-- **أمثلة**: Xprinter XP-365B / XP-370B، Zebra ZD220.
-
-### 5. درج النقود الإلكتروني (Cash Drawer / Tiroir-Caisse)
-- درج نقود كيتوصل بكابل **RJ11** مباشرة مع طابعة التذاكر، كيتحل أوتوماتيكياً فـ كل عملية بيع أو طباعة تيكيت.
-
-### 6. جهاز تزويد الطاقة غير المنقطع (UPS / Onduleur) ⚠️ **(مهم جداً!)**
-- **الدور**: يحمي الكاسة من الانقطاع المفاجئ للكهرباء.
-- **السبب**: ملفات WinDev HFSQL (`.FIC` و `.ndx`) حساسة جداً لانقطاع الكهرباء أثناء الكتابة، والـ Onduleur كيمنع تلف قاعدة البيانات (Data Corruption).
-- **القدرة المنصوح بها**: 650VA أو 850VA (بحال APC Back-UPS أو Eaton).
-
-### 7. ربط شبكي مستقر (Network Connection)
-- كابل شبكة **Ethernet RJ45** من الروتور للبيسي (أحسن وأضمن من الـ Wi-Fi للكاسة لضمان المزامنة السريعة وبدون انقطاع).
-
----
-
-## 4. الخدمات الرقمية والـ APIs الخارجية (External Services & APIs)
-
-باش تكون حلقة الوصل كاملة ومكتملة، ها هما الخدمات والاشتراكات اللي غاتحتاج:
-
-| الخدمة / API | الغرض منها | الحالة والتكلفة |
+| File | Structure & Record Stride | Decoded Fields |
 | :--- | :--- | :--- |
-| **WooCommerce REST API** | استقبال المنتجات، الأثمنة، المخزون، والصور من الكاسة. | **مجاني** (مضمن فـ إضافة WooCommerce فـ موقعك). |
-| **استضافة الموقع (Web Hosting)** | استضافة المتجر الإلكتروني WordPress مع شهادة SSL (HTTPS ضروري للـ API). | استضافة سريعة (Hostinger, Cloudways, أو VPS) تدعم cURL و REST API. |
-| **Serper.dev API** | البحث فـ Google Images لتحميل تصاور المنتجات الأصلية بدقة عالية. | **مجاني لـ 2,500 بحث** (كافية لكتالوج كامل)، ومن بعد 5$ لكل 50,000 طلب. |
-| **Bing Images Scraper** | محرك بحث بديل واحتياطي فـ حالة نفاد رصيد Serper. | **مجاني 100%** وبدون مفاتيح (مدمج فالكود). |
-| **Cloud Backup (Google Drive / Mega)** | نسخ احتياطي يومي تلقائي لمجلد `SMARTBASE-2026` لحماية بيانات المحل من الضياع. | مجاني أو رمزي. |
+| **`Article.FIC`** | **Fixed 532 Bytes** per record | • `Code Article`: Internal ID (e.g., `AR0000002` at offset +97)<br>• `Designation`: Full reference with size (offset +12)<br>• `Barcode`: EAN-13 / UPC barcode (offset +148) |
+| **`prix.FIC`** | **Fixed 360 Bytes** per record | • `SKU`: Product model reference<br>• `Price`: Retail price in MAD (byte offset 322) |
+| **`Factures.FIC`** | Dynamic sales ledger | Records all completed cashier checkout transactions |
+
+### Data Summary from Active Store:
+- **Total Stock Variants**: 1,925 individual size items.
+- **Unique Parent Models**: 1,314 grouped product models.
+- **Parsing Performance**: Under 35 milliseconds for the entire catalog.
 
 ---
 
-## 5. أفكار واقتراحات مستقبلية لتطوير المشروع (Suggested Ideas & Roadmap)
+## 4. External Hardware & Material Requirements
 
-ها هي اقتراحات تقنية وتجارية تقدر تزيدها باش يولي البروجي Enterprise-Grade ومتكامل:
+To operate the POS counter and the sync bridge reliably in a retail store, the following hardware equipment is required:
 
-### 💡 الفكرة 1: أيقونة في شريط المهام (System Tray Applet)
-- إضافة أيقونة حدا الساعة فـ الويندوز باستعمال مكتبة `pystray`.
-- الكاشير يقدر يشوف حالة الاتصال (نقطة خضراء = متصل، حمراء = غير متصل)، يدير Pause/Resume للبحث، ويشوف شحال من صباط تزامن بلا ما يحل النافذة السوداء.
+### 1. POS Counter Computer (PC Caisse)
+- **Processor**: Intel Core i3 / i5 (6th Gen or newer) or AMD Ryzen equivalent.
+- **RAM**: Minimum **8 GB DDR4**.
+- **Storage**: **SSD (Solid State Drive)** is mandatory. HFSQL files perform frequent read/write cycles; an HDD causes severe UI stutter.
+- **Operating System**: **Windows 10 or Windows 11 (64-bit)**.
 
-### 💡 الفكرة 2: مزامنة عكسية للطلبات (Two-Way Stock & Order Sync)
-- ملي شي زبون يدير Commande فـ الموقع، السكربت يخرج تنبيه صوتي فـ الكاسة (Notification Popup)، وينقص المخزون أوتوماتيكياً فـ الكاسة باش نفس السلعة ما تباعش فـ المحل وفـ السيت فنفس الوقت.
+### 2. Barcode Scanner (Douchette Code-Barres)
+- **Type**: **1D/2D Barcode & QR Code Scanner** (Wireless 2.4GHz / Bluetooth preferred for mobility, or USB wired).
+- **Configuration**: Must operate in **Keyboard Emulation (HID Mode)** so scanning a shoe box or tag instantly inputs text into the active field.
+- **Recommended Models**: Zebra DS2208, Honeywell Voyager 1400g, Netum Wireless 2D.
 
-### 💡 الفكرة 3: إرسال التيكيت فـ الواتساب (WhatsApp Digital Receipt)
-- ربط النظام بـ WhatsApp Business API أو محرك محلي، باش ملي يخلص الزبون، الكاشير يكتب نمرتو ويتصيفط ليه Ticket الشراء وصور السلع مباشرة فـ واتساب، وهكا كتجمع داتابيز ديال نمر الزبائن للـ Marketing.
+### 3. Thermal Receipt Printer (Imprimante Ticket de Caisse - 80mm)
+- **Role**: Customer receipt generation.
+- **Specifications**: **80mm thermal paper width**, Auto-Cutter, USB interface, and RJ11 port to trigger the cash drawer.
+- **Recommended Models**: Epson TM-T20III, Xprinter XP-N160M / XP-Q200.
 
-### 💡 الفكرة 4: طباعة ملصقات الباركود مباشرة من السكربت
-- إضافة ميزة عند الضغط على زر اختصار (مثلاً `F4`)، يطبع السكربت ملصق الباركود للموديل والمقاس المختار مباشرة فـ طابعة الـ Barcode (بقياس 50x30mm).
+### 4. Barcode Label Printer (Imprimante d'Étiquettes Code-Barres)
+- **Role**: Printing price, size, and barcode tags for display items and shoe boxes.
+- **Type**: Direct Thermal or Thermal Transfer.
+- **Label Standard**: 50x30 mm or 40x25 mm.
+- **Recommended Models**: Xprinter XP-365B / XP-370B, Zebra ZD220.
 
-### 💡 الفكرة 5: لوحة تحكم سحابية (Multi-Store Web Dashboard)
-- إلى كان عندك أكثر من فرع (مثلاً محل فـ كازا ومحل فـ الرباط)، Local Agent فـ كل فرع يصيفط الستوك لنفس لوحة التحكم المركزية لتوحيد المخزون للمتجر الإلكتروني.
+### 5. Electronic Cash Drawer (Tiroir-Caisse Automatique)
+- **Specifications**: Metal cash drawer with 4/5 bill compartments and 8 coin slots, connected via **RJ11** to the receipt printer for automatic opening on sale completion.
 
-### 💡 الفكرة 6: النسخ الاحتياطي السحابي التلقائي (Automated Cloud Backup)
-- إضافة سكربت كيدير كل ليلة Zip مشفر لمجلد `SMARTBASE-2026` ويرفعو لـ Google Drive لحماية بيانات المحل ضد أي عطب فـ القرص الصلب.
+### 6. Uninterruptible Power Supply (UPS / Onduleur) ⚠️ **CRITICAL**
+- **Why it matters**: PC SOFT HyperFileSQL (`.FIC` and `.ndx`) files are highly vulnerable to corruption if power cuts during an active database write transaction.
+- **Recommended**: **650VA to 850VA UPS** (e.g., APC Back-UPS 650VA or Eaton 650). Provides 15–20 minutes of battery backup to safely close transactions.
+
+### 7. Reliable Network Infrastructure
+- **Connection**: Wired **Ethernet RJ45 Cable** from the store router to the POS PC (preferred over Wi-Fi for uninterrupted sync).
 
 ---
 
-## 6. دليل أوامر التشغيل والاستخدام (Cheat Sheet)
+## 5. Cloud Services & External APIs
 
-| الأمر | الشرح |
+| Service | Function | Cost / Plan |
+| :--- | :--- | :--- |
+| **WooCommerce REST API** | Receiving catalog data, stock levels, and prices from GestCaisse. | **Free** (Built into WordPress & WooCommerce). |
+| **WordPress Web Hosting** | Hosting the e-commerce store with valid SSL (HTTPS is strictly required by WooCommerce API). | Standard VPS or managed hosting (Hostinger, Cloudways, etc.). |
+| **Serper.dev API** | Querying Google Images API to retrieve pristine product imagery. | **Free tier (2,500 queries)**, then $5 for 50,000 queries. |
+| **Bing Images Scraper** | Automatic fallback scraper when Serper quota is exhausted. | **100% Free** (No API keys needed, built into code). |
+| **Automated Cloud Backup** | Daily backup of `SMARTBASE-2026` database files. | Google Drive, OneDrive, or local NAS. |
+
+---
+
+## 6. Future Roadmap & Recommended Features
+
+### 💡 1. System Tray Desktop Applet
+- Package the daemon into a Windows System Tray icon using `pystray`.
+- Displays real-time green/red sync status, quick Pause/Resume toggles, and recent activity logs without keeping a CMD console open.
+
+### 💡 2. Two-Way Inventory & Order Notifications
+- Periodically poll WooCommerce for new orders (`status: processing`).
+- Trigger an audible chime and popup alert on the POS screen notifying the cashier of an online purchase, while automatically deducting local inventory.
+
+### 💡 3. WhatsApp Digital Receipts
+- Connect with WhatsApp Business API to offer customers digital receipts sent directly to their phone, building an opt-in phone database for SMS/WhatsApp marketing.
+
+### 💡 4. 1-Click Barcode Tag Printing (`F4` Hotkey)
+- Map an `F4` hotkey inside GestCaisse to instantly generate and print a 50x30mm thermal label (with model name, barcode, and price) on the Xprinter/Zebra label printer.
+
+### 💡 5. Multi-Store Centralized Inventory
+- If the merchant opens multiple retail branches, deploy a Local Sync Agent in each store pointing to a centralized cloud sync controller to balance inventory across locations.
+
+### 💡 6. Automated Encrypted Nightly HFSQL Backup
+- Script a scheduled background task that creates a compressed, encrypted `.zip` archive of `SMARTBASE-2026` every evening at store closing and uploads it to cloud storage.
+
+---
+
+## 7. CLI Commands & Operations Cheat Sheet
+
+| Command | Action |
 | :--- | :--- |
-| `python main.py --status` | فحص اتصال الكاسة، عدد السلع، تغطية الصور، وحالة WooCommerce |
-| `python main.py` | تشغيل النظام الكامل (مساعد الصور F2 + مزامنة اللحظية فـ الخلفية) |
-| `run_bridge.bat` | تشغيل فوري بدون فتح الـ Terminal |
-| `python main.py --sync-web` | مزامنة كل منتجات الكاسة للمتجر دفعة واحدة (Batch Sync) |
-| `python main.py --sync-images` | فحص وتحميل الصور الناقصة لجميع الموديلات |
+| `python main.py --status` | Check GestCaisse DB connection, total products, image coverage, and WooCommerce status |
+| `python main.py` | Start full background service (F2 image assistant + real-time web sync agent) |
+| `run_bridge.bat` | 1-click Windows shortcut to launch the daemon without touching the terminal |
+| `python main.py --sync-web` | Perform a full batch sync of all GestCaisse products to WooCommerce |
+| `python main.py --sync-images` | Scan database and bulk download missing images for all products |
 
 ---
 
-> ✍️ **تم إعداد هذا التوثيق لمشروع BestBrand** لضمان أفضل أداء واستقرار بين لوجيسييل الكاسة والمتجر الإلكتروني.
+> 🔒 **Security Notice**: Keep `.env` out of public repositories. Use `.env.example` as a template for new deployments.
