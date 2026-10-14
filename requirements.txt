@@ -1,0 +1,8 @@
+pyodbc
+requests
+beautifulsoup4
+pillow
+pyperclip
+python-dotenv
+pynput
+
