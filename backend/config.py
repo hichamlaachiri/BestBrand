@@ -7,16 +7,18 @@ load_dotenv()
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# GestCaisse Path Discovery (Env -> Production C:\ -> Relative Dev Path)
+# GestCaisse Path Discovery (Env -> Dev Relative Path -> Production C:\)
 GESTCAISSE_ENV = os.getenv("GESTCAISSE_DIR")
-if GESTCAISSE_ENV and Path(GESTCAISSE_ENV).exists():
+if GESTCAISSE_ENV and (Path(GESTCAISSE_ENV) / "SMARTBASE-2026").exists():
     APP_DIR = Path(GESTCAISSE_ENV)
+elif (BASE_DIR.parent / "SMART gestcaisse" / "SMARTBASE-2026").exists():
+    APP_DIR = BASE_DIR.parent / "SMART gestcaisse"
+elif (Path(r"C:\SMART gestcaisse") / "SMARTBASE-2026").exists():
+    APP_DIR = Path(r"C:\SMART gestcaisse")
 elif Path(r"C:\SMART gestcaisse").exists():
     APP_DIR = Path(r"C:\SMART gestcaisse")
-elif (BASE_DIR.parent / "SMART gestcaisse").exists():
-    APP_DIR = BASE_DIR.parent / "SMART gestcaisse"
 else:
-    APP_DIR = Path(r"C:\SMART gestcaisse")
+    APP_DIR = BASE_DIR.parent / "SMART gestcaisse"
 
 DATA_DIR = APP_DIR / "SMARTBASE-2026"
 IMAGES_DIR = APP_DIR / "Images"
@@ -38,6 +40,20 @@ ENABLE_AUTO_IMAGE_UPLOAD = os.getenv("ENABLE_AUTO_IMAGE_UPLOAD", "true").lower()
 
 # Serper.dev Image Scraping API Key
 SERPER_API_KEY = os.getenv("SERPER_API_KEY", "403cba5715e01a9c9b102862b0c8eb498d5da3bf")
+
+# Performance Tuning (Low-Resource Mode for older POS hardware)
+LOW_RESOURCE_MODE = os.getenv("LOW_RESOURCE_MODE", "true").lower() in ("true", "1", "yes")
+
+# Auto-lower process priority on Windows so GestCaisse always has 100% CPU priority
+if LOW_RESOURCE_MODE:
+    try:
+        import ctypes
+        kernel32 = ctypes.windll.kernel32
+        handle = kernel32.GetCurrentProcess()
+        # 0x00004000 = BELOW_NORMAL_PRIORITY_CLASS
+        kernel32.SetPriorityClass(handle, 0x00004000)
+    except Exception:
+        pass
 
 def log(msg: str):
     """Prints formatted message and appends to @AutomationLog.txt."""

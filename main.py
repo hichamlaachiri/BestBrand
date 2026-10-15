@@ -12,6 +12,8 @@ from services.background_worker import BackgroundListenerDaemon
 from backend.hfsql_reader import sync_missing_images
 from backend.sync.sync_manager import LocalSyncAgent
 
+from backend.config import LOW_RESOURCE_MODE
+
 def print_status(agent: LocalSyncAgent):
     print("=" * 65)
     print(" 🤖 SMART GestCaisse Bridge & Local Real-Time Sync Agent")
@@ -21,6 +23,7 @@ def print_status(agent: LocalSyncAgent):
     print(f" • Total Stock Variants : {status['total_articles']} articles")
     print(f" • Unique Parent Models : {status['unique_models']} products")
     print(f" • Image Coverage       : {status['models_with_images']}/{status['unique_models']} models ({status['image_coverage_pct']}%)")
+    print(f" • Hardware Profile     : {'🟢 Low-Resource Mode (Low CPU/RAM Priority)' if LOW_RESOURCE_MODE else '⚡ Standard Mode'}")
     print(f" • WooCommerce Sync     : {'✅ Configured' if status['ecommerce_configured'] else '⚠️ Not Configured in .env'}")
     print(f"   └ API Status         : {status['ecommerce_status']['message']}")
     print(f" • Pending Sync Queue   : {status['pending_queue_count']} updates")

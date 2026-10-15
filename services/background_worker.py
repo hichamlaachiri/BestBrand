@@ -18,7 +18,7 @@ from pathlib import Path
 from pynput import keyboard
 from pynput.keyboard import Key, Controller as KeyboardController
 from pynput.mouse import Button, Controller as MouseController
-from backend.config import DATA_DIR, IMAGES_DIR, BASE_DIR, log
+from backend.config import DATA_DIR, IMAGES_DIR, BASE_DIR, LOW_RESOURCE_MODE, log
 from backend.scraper import fetch_product_images
 from backend.hfsql_reader import extract_skus_from_db
 
@@ -276,9 +276,9 @@ class BackgroundListenerDaemon:
                             target = self.latest_folder_path
                             if target and os.path.exists(target):
                                 navigate_file_dialog_to_folder(hwnd, target)
-                time.sleep(0.2)
+                time.sleep(0.5 if LOW_RESOURCE_MODE else 0.2)
             except Exception:
-                time.sleep(0.3)
+                time.sleep(0.8 if LOW_RESOURCE_MODE else 0.3)
 
     # --- 2. HFSQL DB File Watcher ---
     def _hfsql_watcher_loop(self):
@@ -302,9 +302,9 @@ class BackgroundListenerDaemon:
                             for sku in skus[-3:]:
                                 self.process_detected_sku(sku, "HFSQL Database (Article.FIC)")
 
-                time.sleep(2)
+                time.sleep(15 if LOW_RESOURCE_MODE else 2)
             except Exception:
-                time.sleep(2)
+                time.sleep(15 if LOW_RESOURCE_MODE else 2)
 
     # --- 3. Clipboard Monitor ---
     def _clipboard_monitor_loop(self):
@@ -324,9 +324,9 @@ class BackgroundListenerDaemon:
                             sku = match.group(1)
                             last_clip = clip
                             self.process_detected_sku(sku, "Clipboard")
-                time.sleep(1)
+                time.sleep(2 if LOW_RESOURCE_MODE else 1)
             except Exception:
-                time.sleep(1)
+                time.sleep(2 if LOW_RESOURCE_MODE else 1)
 
     # --- 4. 1-Touch Hotkey Assistant (F2) ---
     def _on_key_release(self, key):

@@ -2,7 +2,7 @@ import json
 import time
 import threading
 from pathlib import Path
-from backend.config import STATE_FILE, SYNC_INTERVAL_SECONDS, ENABLE_AUTO_IMAGE_UPLOAD, log
+from backend.config import STATE_FILE, SYNC_INTERVAL_SECONDS, ENABLE_AUTO_IMAGE_UPLOAD, LOW_RESOURCE_MODE, log
 from backend.sync.local_reader import get_local_catalog, get_grouped_catalog, compute_catalog_hash
 from backend.sync.ecommerce_client import WooCommerceBridgeClient
 
@@ -221,12 +221,13 @@ class LocalSyncAgent:
 
     def _sync_loop(self):
         """Background monitoring thread."""
+        interval = max(60, SYNC_INTERVAL_SECONDS) if LOW_RESOURCE_MODE else SYNC_INTERVAL_SECONDS
         while self.running:
             try:
                 self.check_for_changes_and_sync()
             except Exception as e:
                 log(f"⚠️ Sync Agent background error: {e}")
-            time.sleep(SYNC_INTERVAL_SECONDS)
+            time.sleep(interval)
 
     def start(self):
         """Starts the sync agent background daemon."""
