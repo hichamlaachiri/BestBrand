@@ -1,18 +1,23 @@
 :root {
-  --bg-main: #09090b;
-  --bg-surface: #121217;
-  --bg-card: #181820;
-  --bg-card-hover: #1f1f2a;
-  --border-subtle: rgba(255, 255, 255, 0.08);
-  --border-focus: rgba(255, 255, 255, 0.25);
+  --bg-main: #060608;
+  --bg-surface: #0c0c10;
+  --bg-card: #121217;
+  --bg-card-hover: #181820;
+  --border-subtle: rgba(212, 175, 55, 0.14);
+  --border-focus: rgba(212, 175, 55, 0.4);
   
   --text-primary: #ffffff;
-  --text-secondary: #9ba1b0;
-  --text-muted: #5e6473;
+  --text-secondary: #a3a8b7;
+  --text-muted: #656a79;
   
-  --accent-volt: #00f090;
-  --accent-volt-glow: rgba(0, 240, 144, 0.35);
-  --accent-red: #ff334b;
+  /* Royal Brushed Gold Theme */
+  --gold-primary: #d4af37;
+  --gold-light: #f5d77f;
+  --gold-dark: #9e782f;
+  --gold-gradient: linear-gradient(135deg, #fce08b 0%, #d4af37 50%, #9e782f 100%);
+  --gold-gradient-hover: linear-gradient(135deg, #fff0a8 0%, #e2be4a 50%, #b88d3b 100%);
+  --gold-glow: rgba(212, 175, 55, 0.32);
+  --gold-glow-subtle: rgba(212, 175, 55, 0.12);
   
   --font-athletic: 'Bebas Neue', 'Oswald', sans-serif;
   --font-body: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -42,7 +47,7 @@ body {
   overflow-x: hidden;
 }
 
-/* Custom Scrollbar */
+/* Custom Scrollbar in Gold */
 ::-webkit-scrollbar {
   width: 8px;
 }
@@ -50,11 +55,12 @@ body {
   background: var(--bg-main);
 }
 ::-webkit-scrollbar-thumb {
-  background: #252530;
+  background: #232018;
+  border: 1px solid rgba(212, 175, 55, 0.2);
   border-radius: 4px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #353545;
+  background: #3a3422;
 }
 
 /* Typography Helpers */
@@ -65,16 +71,23 @@ body {
   line-height: 0.95;
 }
 
+.text-gold-gradient {
+  background: var(--gold-gradient);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  display: inline-block;
+}
+
 /* Glassmorphism Classes */
 .glass-nav {
-  background: rgba(9, 9, 11, 0.82);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
+  background: rgba(6, 6, 8, 0.88);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
   border-bottom: 1px solid var(--border-subtle);
 }
 
 .glass-panel {
-  background: rgba(18, 18, 23, 0.75);
+  background: rgba(12, 12, 16, 0.78);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border: 1px solid var(--border-subtle);
@@ -99,24 +112,25 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: #ffffff;
+  background: var(--gold-gradient);
   color: #000000;
-  font-weight: 700;
+  font-weight: 800;
   font-size: 0.95rem;
-  padding: 0.85rem 1.75rem;
+  padding: 0.85rem 1.85rem;
   border-radius: var(--radius-full);
   border: none;
   cursor: pointer;
   transition: all var(--transition-fast);
   text-transform: uppercase;
-  letter-spacing: 0.05em;
+  letter-spacing: 0.06em;
+  box-shadow: 0 4px 18px var(--gold-glow);
 }
 
 .btn-primary:hover {
-  background: var(--accent-volt);
+  background: var(--gold-gradient-hover);
   color: #000000;
   transform: translateY(-2px);
-  box-shadow: 0 8px 24px var(--accent-volt-glow);
+  box-shadow: 0 8px 28px rgba(212, 175, 55, 0.5);
 }
 
 .btn-secondary {
@@ -124,7 +138,7 @@ body {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  background: rgba(255, 255, 255, 0.08);
+  background: rgba(255, 255, 255, 0.05);
   color: #ffffff;
   font-weight: 600;
   font-size: 0.9rem;
@@ -136,20 +150,21 @@ body {
 }
 
 .btn-secondary:hover {
-  background: rgba(255, 255, 255, 0.16);
-  border-color: rgba(255, 255, 255, 0.3);
+  background: rgba(212, 175, 55, 0.1);
+  border-color: var(--gold-primary);
+  color: var(--gold-light);
   transform: translateY(-1px);
 }
 
 /* Size Pills */
 .size-pill {
-  min-width: 46px;
+  min-width: 48px;
   height: 44px;
-  padding: 0 0.85rem;
+  padding: 0 0.9rem;
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  background: rgba(255, 255, 255, 0.05);
+  background: rgba(255, 255, 255, 0.04);
   border: 1px solid var(--border-subtle);
   border-radius: 8px;
   color: #ffffff;
@@ -160,16 +175,18 @@ body {
 }
 
 .size-pill:hover {
-  border-color: rgba(255, 255, 255, 0.4);
-  background: rgba(255, 255, 255, 0.1);
+  border-color: var(--gold-primary);
+  background: rgba(212, 175, 55, 0.12);
+  color: var(--gold-light);
   transform: translateY(-1px);
 }
 
 .size-pill.active {
-  background: #ffffff;
+  background: var(--gold-gradient);
   color: #000000;
-  border-color: #ffffff;
-  box-shadow: 0 0 16px rgba(255, 255, 255, 0.3);
+  border-color: var(--gold-light);
+  box-shadow: 0 0 20px var(--gold-glow);
+  font-weight: 800;
 }
 
 /* Badges */
@@ -186,14 +203,15 @@ body {
 }
 
 .badge-tag.new {
-  background: var(--accent-volt);
+  background: var(--gold-gradient);
   color: #000000;
+  box-shadow: 0 2px 10px var(--gold-glow);
 }
 
 .badge-tag.sync {
-  background: rgba(0, 240, 144, 0.12);
-  color: var(--accent-volt);
-  border: 1px solid rgba(0, 240, 144, 0.3);
+  background: rgba(212, 175, 55, 0.1);
+  color: var(--gold-light);
+  border: 1px solid rgba(212, 175, 55, 0.3);
 }
 
 /* Animations */

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { 
   ShoppingBag, 
   Search, 
-  Zap, 
   X, 
   Plus, 
   Minus, 
@@ -10,9 +9,9 @@ import {
   CheckCircle2, 
   RotateCcw, 
   ShieldCheck, 
-  Sparkles,
+  Crown,
   Layers,
-  Flame
+  Sparkles
 } from 'lucide-react';
 import './App.css';
 
@@ -38,16 +37,10 @@ export default function App() {
         const res = await fetch(`${STORE_API_URL}?per_page=50`);
         if (res.ok) {
           const data = await res.json();
-          // Normalize products
           const formatted = data.map(p => {
-            // Extract sizes
             const sizeAttr = p.attributes?.find(a => a.name.toLowerCase().includes('taille') || a.name.toLowerCase().includes('size'));
             const sizes = sizeAttr?.terms?.map(t => t.name) || ['S', 'M', 'L', 'XL'];
-            
-            // Format price in MAD
             const rawPrice = p.prices?.price ? (parseInt(p.prices.price) / 100).toFixed(2) : '790.00';
-            
-            // Clean title
             const cleanTitle = p.name.replace(/&#8211;/g, '-').replace(/&#8217;/g, "'").replace(/\&amp;/g, '&');
             
             return {
@@ -160,7 +153,7 @@ export default function App() {
       }
     });
 
-    setToast(`Ajouté au panier : ${prod.name.slice(0, 28)}... (${size})`);
+    setToast(`Ajouté au panier : ${prod.name.slice(0, 26)}... (${size})`);
     setTimeout(() => setToast(''), 3500);
     setIsCartOpen(true);
   }
@@ -184,22 +177,22 @@ export default function App() {
       {/* Toast Notification */}
       {toast && (
         <div className="toast-msg animate-slide-in">
-          <CheckCircle2 size={20} color="var(--accent-volt)" />
+          <CheckCircle2 size={20} color="var(--gold-primary)" />
           <span>{toast}</span>
         </div>
       )}
 
       {/* Top Banner Bar */}
-      <div style={{ background: '#000', borderBottom: '1px solid var(--border-subtle)', padding: '0.45rem 1rem', textAlign: 'center', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)' }}>
-        ⚡ LIVRAISON PARTOUT AU MAROC • SYNCHRONISATION EN DIRECT DU STOCK SMART GESTCAISSE
+      <div style={{ background: '#000', borderBottom: '1px solid rgba(212, 175, 55, 0.25)', padding: '0.5rem 1rem', textAlign: 'center', fontSize: '0.78rem', fontWeight: 700, color: 'var(--gold-light)', letterSpacing: '0.06em' }}>
+        ⚜️ BEST BRAND OFFICIAL STORE • SYNCHRONISATION EN DIRECT SMART GESTCAISSE • LIVRAISON PARTOUT AU MAROC
       </div>
 
       {/* Sticky Navigation Bar */}
       <header className="navbar-sticky glass-nav">
         <div className="container-max nav-inner">
           <div className="brand-logo" onClick={() => { setSelectedCategory('all'); setSearchQuery(''); }}>
-            <Zap className="brand-bolt" />
-            <h1>BESTBRAND</h1>
+            <img src="/logo.jpg" alt="BEST BRAND" className="brand-logo-img" />
+            <h1>BEST BRAND</h1>
           </div>
 
           <nav>
@@ -217,7 +210,7 @@ export default function App() {
                   className={selectedCategory === 'hoodies' ? 'active' : ''} 
                   onClick={() => setSelectedCategory('hoodies')}
                 >
-                  HOODIES & JACKETS
+                  HOODIES & TECH FLEECE
                 </button>
               </li>
               <li>
@@ -259,27 +252,27 @@ export default function App() {
         </div>
       </header>
 
-      {/* Hero Athletic Banner */}
+      {/* Hero Athletic Luxury Banner */}
       <section className="hero-section">
         <div className="container-max">
           <div className="hero-content animate-fade-in">
             <div className="hero-pill-tag">
-              <Flame size={15} />
-              <span>GESTCAISSE VERIFIED INVENTORY 2026</span>
+              <Crown size={15} color="var(--gold-light)" />
+              <span>THE GOLD STANDARD IN ATHLETIC LUXURY • SMARTBASE-2026</span>
             </div>
             <h2 className="title-athletic hero-title">
-              ENGINEERED FOR SPORT.
-              <span>BUILT FOR LUXURY.</span>
+              CROWNED BY EXCELLENCE.
+              <span className="text-gold-gradient">SUPREME SPORTSWEAR.</span>
             </h2>
             <p className="hero-subtitle">
-              Découvrez la collection officielle BestBrand. Tech Fleece, coupe-vents et sneakers exclusifs directement synchronisés avec la caisse du magasin physique.
+              L'excellence du sportswear et du streetwear de marque. Tech Fleece haute précision, pièces d'exception et sneakers vérifiés, reliés en temps réel aux stocks physiques de votre caisse.
             </p>
             <div className="hero-cta-group">
               <button className="btn-primary" onClick={() => setSelectedCategory('hoodies')}>
-                EXPLORE TECH FLEECE <ArrowRight size={18} />
+                DÉCOUVRIR TECH FLEECE <ArrowRight size={18} />
               </button>
               <button className="btn-secondary" onClick={() => setSelectedCategory('all')}>
-                ALL PRODUCTS ({products.length})
+                COLLECTION COMPLÈTE ({products.length})
               </button>
             </div>
           </div>
@@ -317,20 +310,20 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 600 }}>
-            AFFICHAGE : {filteredProducts.length} MODÈLES EN STOCK
+          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>
+            AFFICHAGE : <span style={{ color: 'var(--gold-light)' }}>{filteredProducts.length} ARTICLES</span> EN STOCK
           </div>
         </div>
 
         {/* Products Grid */}
         {loading ? (
           <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <div style={{ display: 'inline-block', width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: 'var(--accent-volt)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ marginTop: '1rem', fontWeight: 600 }}>Connexion au catalogue en direct...</p>
+            <div style={{ display: 'inline-block', width: 44, height: 44, border: '3px solid rgba(212,175,55,0.15)', borderTopColor: 'var(--gold-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <p style={{ marginTop: '1.25rem', fontWeight: 700, color: 'var(--gold-light)' }}>Connexion au catalogue live...</p>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <Layers size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
+            <Layers size={48} style={{ opacity: 0.3, marginBottom: '1rem', color: 'var(--gold-primary)' }} />
             <h3>Aucun produit trouvé</h3>
             <p style={{ color: 'var(--text-muted)' }}>Essayez de modifier votre recherche ou filtre.</p>
           </div>
@@ -344,7 +337,7 @@ export default function App() {
               >
                 <div className="card-media">
                   <div className="card-badge">
-                    <span className="badge-tag new">NEW IN</span>
+                    <span className="badge-tag new">BEST BRAND</span>
                   </div>
                   <img 
                     src={prod.images[0] || 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=600&auto=format&fit=crop&q=80'} 
@@ -355,7 +348,7 @@ export default function App() {
                 </div>
 
                 <div className="card-details">
-                  <span className="card-brand">NIKE / BESTBRAND</span>
+                  <span className="card-brand">NIKE / BEST BRAND</span>
                   <h3 className="card-title">{prod.name}</h3>
 
                   <div className="card-sizes-preview">
@@ -424,7 +417,7 @@ export default function App() {
               <div className="modal-info-col">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <span className="badge-tag sync">
-                    <Zap size={12} /> SMARTBASE-2026 IN STOCK
+                    <Crown size={12} color="var(--gold-light)" /> SMARTBASE-2026 IN STOCK
                   </span>
                 </div>
 
@@ -437,8 +430,8 @@ export default function App() {
 
                 {/* Size Selector Pills */}
                 <div className="size-select-label">
-                  <span>CHOISIR UNE TAILLE (POINTURE / TAILLE)</span>
-                  <span style={{ color: 'var(--accent-volt)', cursor: 'pointer', fontSize: '0.8rem' }}>Guide des tailles</span>
+                  <span>SÉLECTIONNEZ VOTRE TAILLE (POINTURE / TAILLE)</span>
+                  <span style={{ color: 'var(--gold-light)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>Guide des tailles</span>
                 </div>
 
                 <div className="size-pills-wrap">
@@ -456,7 +449,7 @@ export default function App() {
                 {/* Add to Bag CTA */}
                 <button 
                   className="btn-primary" 
-                  style={{ width: '100%', padding: '1.1rem', fontSize: '1.05rem', marginBottom: '1.5rem' }}
+                  style={{ width: '100%', padding: '1.15rem', fontSize: '1.05rem', marginBottom: '1.5rem' }}
                   onClick={() => {
                     handleAddToBag(selectedProduct, selectedSize);
                     setSelectedProduct(null);
@@ -468,12 +461,12 @@ export default function App() {
                 {/* Feature Highlights */}
                 <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <ShieldCheck size={18} color="var(--accent-volt)" />
+                    <ShieldCheck size={18} color="var(--gold-primary)" />
                     <span>Produit 100% Authentique & Vérifié en Magasin</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <RotateCcw size={18} color="var(--accent-volt)" />
-                    <span>Échange de taille gratuit sous 7 jours</span>
+                    <RotateCcw size={18} color="var(--gold-primary)" />
+                    <span>Échange de taille garanti sous 7 jours</span>
                   </div>
                 </div>
               </div>
@@ -487,7 +480,7 @@ export default function App() {
         <div className="cart-drawer-overlay" onClick={() => setIsCartOpen(false)}>
           <div className="cart-drawer animate-slide-in" onClick={e => e.stopPropagation()}>
             <div className="cart-header">
-              <h2>VOTRE PANIER ({totalCartCount})</h2>
+              <h2>PANIER BEST BRAND ({totalCartCount})</h2>
               <button className="cart-btn" onClick={() => setIsCartOpen(false)}>
                 <X size={20} />
               </button>
@@ -496,7 +489,7 @@ export default function App() {
             <div className="cart-items-scroll">
               {cart.length === 0 ? (
                 <div style={{ padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <ShoppingBag size={48} style={{ opacity: 0.25, marginBottom: '1rem' }} />
+                  <ShoppingBag size={48} style={{ opacity: 0.25, marginBottom: '1rem', color: 'var(--gold-primary)' }} />
                   <p>Votre panier est vide pour le moment.</p>
                 </div>
               ) : (
@@ -511,7 +504,7 @@ export default function App() {
                       <h4 className="cart-item-title">{item.product.name}</h4>
                       <span className="cart-item-meta">Taille : {item.size} • {item.product.sku}</span>
                       <div className="cart-item-actions">
-                        <strong style={{ color: '#ffffff' }}>{item.product.price} MAD</strong>
+                        <strong style={{ color: 'var(--gold-light)' }}>{item.product.price} MAD</strong>
                         <div className="qty-control">
                           <button className="qty-btn" onClick={() => updateCartQty(item.cartItemId, -1)}>
                             <Minus size={14} />
@@ -552,30 +545,30 @@ export default function App() {
       )}
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid var(--border-subtle)', padding: '3.5rem 0', background: '#050507', marginTop: '4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+      <footer style={{ borderTop: '1px solid rgba(212, 175, 55, 0.2)', padding: '3.5rem 0', background: '#040405', marginTop: '4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
         <div className="container-max" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '2rem' }}>
           <div>
-            <div className="brand-logo" style={{ marginBottom: '0.75rem' }}>
-              <Zap className="brand-bolt" />
-              <h2 style={{ fontFamily: 'var(--font-athletic)', fontSize: '1.8rem', color: '#ffffff' }}>BESTBRAND</h2>
+            <div className="brand-logo" style={{ marginBottom: '0.85rem' }}>
+              <img src="/logo.jpg" alt="BEST BRAND" className="brand-logo-img" />
+              <h2 style={{ fontFamily: 'var(--font-athletic)', fontSize: '1.8rem', background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>BEST BRAND</h2>
             </div>
             <p style={{ maxWidth: 350, lineHeight: 1.6 }}>
-              Boutique officielle de streetwear & sportswear performance reliée en temps réel au système de caisse GestCaisse.
+              Boutique officielle de streetwear & sportswear haute performance. Articles certifiés authentiques, directement synchronisés avec le système de caisse GestCaisse.
             </p>
           </div>
 
           <div>
-            <h4 style={{ color: '#ffffff', fontWeight: 800, marginBottom: '0.85rem', textTransform: 'uppercase' }}>Navigation</h4>
-            <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setSelectedCategory('all')}>Tous les articles</p>
+            <h4 style={{ color: 'var(--gold-light)', fontWeight: 800, marginBottom: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Collections</h4>
+            <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setSelectedCategory('all')}>Toutes les sorties</p>
             <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setSelectedCategory('hoodies')}>Tech Fleece & Vestes</p>
             <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setSelectedCategory('sneakers')}>Sneakers</p>
           </div>
 
           <div>
-            <h4 style={{ color: '#ffffff', fontWeight: 800, marginBottom: '0.85rem', textTransform: 'uppercase' }}>Infrastructure</h4>
-            <p style={{ marginBottom: '0.5rem' }}>• SMART GestCaisse Local Agent</p>
+            <h4 style={{ color: 'var(--gold-light)', fontWeight: 800, marginBottom: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Infrastructure</h4>
+            <p style={{ marginBottom: '0.5rem' }}>• SMART GestCaisse POS Sync</p>
             <p style={{ marginBottom: '0.5rem' }}>• WooCommerce Headless REST API</p>
-            <p style={{ marginBottom: '0.5rem' }}>• Serveur Hostinger Cloud</p>
+            <p style={{ marginBottom: '0.5rem' }}>• Hostinger Cloud Infrastructure</p>
           </div>
         </div>
       </footer>
