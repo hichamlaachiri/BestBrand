@@ -2,19 +2,28 @@ import os
 import requests
 from pathlib import Path
 from requests.auth import HTTPBasicAuth
-from backend.config import WEB_API_URL, API_KEY, API_SECRET, log
+from backend.config import WEB_API_URL, API_KEY, API_SECRET, WP_USER, WP_APP_PASSWORD, log
 
 class WooCommerceBridgeClient:
     """
     Client for WooCommerce REST API v3.
     Provides product synchronization, stock updates, media upload, and order monitoring.
     """
-    def __init__(self, base_url: str = None, api_key: str = None, api_secret: str = None):
+    def __init__(self, base_url: str = None, api_key: str = None, api_secret: str = None, wp_user: str = None, wp_app_pass: str = None):
         self.base_url = (base_url or WEB_API_URL).rstrip("/")
         self.api_key = api_key or API_KEY
         self.api_secret = api_secret or API_SECRET
+        self.wp_user = wp_user or WP_USER
+        self.wp_app_password = (wp_app_pass or WP_APP_PASSWORD).replace(" ", "")
         self.auth = HTTPBasicAuth(self.api_key, self.api_secret) if self.api_key else None
+        self.wp_auth = HTTPBasicAuth(self.wp_user, self.wp_app_password) if (self.wp_user and self.wp_app_password) else None
         self.session = requests.Session()
+        from urllib3.util.retry import Retry
+        from requests.adapters import HTTPAdapter
+        retries = Retry(total=3, backoff_factor=1, status_forcelist=[502, 503, 504])
+        adapter = HTTPAdapter(max_retries=retries)
+        self.session.mount("https://", adapter)
+        self.session.mount("http://", adapter)
         if self.auth:
             self.session.auth = self.auth
         self.session.headers.update({
@@ -83,7 +92,7 @@ class WooCommerceBridgeClient:
     def upsert_product(self, product_data: dict) -> dict:
         """
         Creates or updates a single product on WooCommerce based on SKU.
-        product_data should contain: sku, name/title, price, barcode, images, sizes.
+        Supports Variable Products with Size (Taille) dropdown variations and Categories.
         """
         if not self.is_configured():
             return {"success": False, "message": "API not configured"}
@@ -91,14 +100,42 @@ class WooCommerceBridgeClient:
         sku = product_data.get("sku") or product_data.get("parent_sku")
         existing = self.get_product_by_sku(sku)
 
+        variations = product_data.get("variations", [])
+        sizes = [str(v.get("size", "")).strip() for v in variations if str(v.get("size", "")).strip()]
+        if not sizes and product_data.get("sizes"):
+            sizes = [str(s).strip() for s in product_data.get("sizes") if str(s).strip()]
+
+        unique_sizes = list(dict.fromkeys(sizes))
+        is_variable = bool(len(unique_sizes) > 0)
+
         payload = {
             "name": product_data.get("name") or product_data.get("title") or sku,
             "sku": sku,
-            "regular_price": str(product_data.get("price", "0.0")),
-            "manage_stock": True,
+            "type": "variable" if is_variable else "simple",
             "stock_status": "instock" if product_data.get("in_stock", True) else "outofstock",
-            "stock_quantity": product_data.get("stock_quantity", 1),
         }
+
+        if not is_variable:
+            payload["regular_price"] = str(product_data.get("price", "0.0"))
+            payload["manage_stock"] = True
+            payload["stock_quantity"] = product_data.get("stock_quantity", 1)
+
+        # Categories
+        categories = product_data.get("categories")
+        if categories:
+            payload["categories"] = [{"id": c} if isinstance(c, int) else {"name": str(c)} for c in categories]
+
+        # Attributes (Taille dropdown)
+        if unique_sizes:
+            payload["attributes"] = [
+                {
+                    "name": "Taille",
+                    "position": 0,
+                    "visible": True,
+                    "variation": is_variable,
+                    "options": unique_sizes
+                }
+            ]
 
         # Add barcode meta if present
         barcode = product_data.get("barcode")
@@ -117,23 +154,72 @@ class WooCommerceBridgeClient:
             if existing:
                 prod_id = existing["id"]
                 url = f"{self.base_url}/products/{prod_id}"
-                res = self.session.put(url, json=payload, timeout=15)
+                res = self.session.put(url, json=payload, timeout=20)
                 action = "Updated"
             else:
                 url = f"{self.base_url}/products"
-                res = self.session.post(url, json=payload, timeout=15)
+                res = self.session.post(url, json=payload, timeout=20)
                 action = "Created"
 
             if res.status_code in (200, 201):
                 res_data = res.json()
-                log(f"  🌐 WooCommerce: {action} product ID #{res_data.get('id')} (SKU: {sku})")
-                return {"success": True, "id": res_data.get("id"), "action": action}
+                prod_id = res_data.get("id")
+                log(f"  🌐 WooCommerce: {action} product ID #{prod_id} (SKU: {sku})")
+
+                # If variable, batch create/update the variations
+                if is_variable and unique_sizes:
+                    self._sync_variations_for_product(prod_id, sku, variations, unique_sizes, product_data.get("price", 0.0))
+
+                return {"success": True, "id": prod_id, "action": action}
             else:
                 log(f"  ❌ WooCommerce error for SKU '{sku}': {res.status_code} {res.text[:150]}")
                 return {"success": False, "status_code": res.status_code, "error": res.text}
         except Exception as e:
             log(f"  ❌ WooCommerce request failed: {e}")
             return {"success": False, "error": str(e)}
+
+    def _sync_variations_for_product(self, prod_id: int, parent_sku: str, variations: list[dict], unique_sizes: list[str], default_price: float):
+        """Creates or updates size variations under a variable product."""
+        try:
+            var_url = f"{self.base_url}/products/{prod_id}/variations"
+            existing_res = self.session.get(var_url, params={"per_page": 50}, timeout=10)
+            existing_vars = existing_res.json() if existing_res.status_code == 200 else []
+            existing_by_size = {}
+            for ev in existing_vars:
+                for att in ev.get("attributes", []):
+                    if att.get("name") == "Taille":
+                        existing_by_size[att.get("option")] = ev["id"]
+
+            create_list = []
+            update_list = []
+
+            var_dict = {str(v.get("size", "")).strip(): v for v in variations if str(v.get("size", "")).strip()}
+
+            for s in unique_sizes:
+                v_data = var_dict.get(s, {})
+                price = v_data.get("price") or default_price
+                var_payload = {
+                    "regular_price": str(price),
+                    "manage_stock": True,
+                    "stock_quantity": v_data.get("stock_quantity", 3),
+                    "attributes": [{"name": "Taille", "option": s}]
+                }
+                sub_sku = v_data.get("sku") or f"{parent_sku}-{s}"
+                var_payload["sku"] = sub_sku
+
+                if s in existing_by_size:
+                    var_payload["id"] = existing_by_size[s]
+                    update_list.append(var_payload)
+                else:
+                    create_list.append(var_payload)
+
+            if create_list or update_list:
+                batch_url = f"{self.base_url}/products/{prod_id}/variations/batch"
+                self.session.post(batch_url, json={"create": create_list, "update": update_list}, timeout=20)
+                log(f"    📏 Synced {len(create_list) + len(update_list)} size variations for #{prod_id} ({', '.join(unique_sizes)})")
+        except Exception as e:
+            log(f"  ⚠️ Error syncing variations for product #{prod_id}: {e}")
+
 
     def batch_sync_products(self, create_list: list[dict] = None, update_list: list[dict] = None) -> dict:
         """
@@ -182,7 +268,8 @@ class WooCommerceBridgeClient:
             with open(file_path, "rb") as f:
                 img_data = f.read()
 
-            res = self.session.post(media_url, headers=headers, data=img_data, timeout=20)
+            auth = self.wp_auth or self.auth
+            res = self.session.post(media_url, headers=headers, data=img_data, timeout=20, auth=auth)
             if res.status_code in (200, 201):
                 data = res.json()
                 media_id = data.get("id")

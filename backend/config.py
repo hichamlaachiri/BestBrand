@@ -33,8 +33,10 @@ except Exception:
 
 # Web API Settings (WooCommerce REST API)
 WEB_API_URL = os.getenv("WEB_API_URL", "https://yourwebsite.com/wp-json/wc/v3").rstrip("/")
-API_KEY = os.getenv("API_KEY", "")
-API_SECRET = os.getenv("API_SECRET", "")
+API_KEY = os.getenv("API_KEY", "").strip()
+API_SECRET = os.getenv("API_SECRET", "").strip()
+WP_USER = os.getenv("WP_USER", "").strip()
+WP_APP_PASSWORD = os.getenv("WP_APP_PASSWORD", "").strip()
 SYNC_INTERVAL_SECONDS = int(os.getenv("SYNC_INTERVAL_SECONDS", "30"))
 ENABLE_AUTO_IMAGE_UPLOAD = os.getenv("ENABLE_AUTO_IMAGE_UPLOAD", "true").lower() in ("true", "1", "yes")
 
@@ -59,7 +61,13 @@ def log(msg: str):
     """Prints formatted message and appends to @AutomationLog.txt."""
     timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     formatted = f"[{timestamp}] {msg}"
-    print(formatted)
+    try:
+        print(formatted)
+    except UnicodeEncodeError:
+        try:
+            print(formatted.encode("ascii", "replace").decode("ascii"))
+        except Exception:
+            pass
     try:
         with open(LOG_FILE, "a", encoding="utf-8") as f:
             f.write(formatted + "\n")

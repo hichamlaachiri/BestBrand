@@ -1,3 +1,4 @@
+import re
 import json
 import time
 import threading
@@ -5,6 +6,23 @@ from pathlib import Path
 from backend.config import STATE_FILE, SYNC_INTERVAL_SECONDS, ENABLE_AUTO_IMAGE_UPLOAD, LOW_RESOURCE_MODE, log
 from backend.sync.local_reader import get_local_catalog, get_grouped_catalog, compute_catalog_hash
 from backend.sync.ecommerce_client import WooCommerceBridgeClient
+from backend.scraper import get_product_commercial_title
+
+def determine_categories(title: str, variations: list[dict]) -> list[dict]:
+    """Auto-detects WooCommerce categories from shoe sizes or apparel keywords."""
+    sizes = [str(v.get("size", "")).strip() for v in variations if str(v.get("size", "")).strip()]
+    is_shoe = any(re.match(r'^(3[5-9]|4[0-8])(\.5)?$', s) for s in sizes)
+    if is_shoe:
+        return [{"id": 19, "name": "Sneakers"}]
+
+    t_lower = title.lower()
+    if any(k in t_lower for k in ("hoodie", "fleece", "windrunner", "jacket", "veste", "sweat")):
+        return [{"id": 20, "name": "Hoodies"}, {"id": 21, "name": "Sportswear"}]
+    elif any(k in t_lower for k in ("t-shirt", "tee", "top")):
+        return [{"id": 22, "name": "T-Shirts"}, {"id": 21, "name": "Sportswear"}]
+    else:
+        return [{"id": 21, "name": "Sportswear"}]
+
 
 class LocalSyncAgent:
     """
@@ -102,13 +120,25 @@ class LocalSyncAgent:
                 if uploaded and uploaded.get("url"):
                     image_urls.append(uploaded["url"])
 
+        parent_sku = item["parent_sku"]
+        commercial_title = get_product_commercial_title(parent_sku)
+        if commercial_title == parent_sku:
+            final_title = parent_sku
+        else:
+            final_title = f"{commercial_title} ({parent_sku})"
+
+        variations = item.get("variations", [])
+        categories = determine_categories(final_title, variations)
+
         product_payload = {
-            "sku": item["parent_sku"],
-            "name": item.get("title") or item["parent_sku"],
+            "sku": parent_sku,
+            "name": final_title,
             "price": item.get("price", 0.0),
             "barcode": item.get("barcode", ""),
             "article_code": item.get("article_code", ""),
-            "image_urls": image_urls
+            "image_urls": image_urls,
+            "variations": variations,
+            "categories": categories
         }
 
         res = self.client.upsert_product(product_payload)

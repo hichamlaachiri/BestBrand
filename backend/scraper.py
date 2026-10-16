@@ -1,6 +1,7 @@
 import sys
 import os
 import re
+import json
 import requests
 from io import BytesIO
 from PIL import Image
@@ -92,10 +93,28 @@ def fetch_product_images(reference: str, max_images: int = 3) -> dict:
                 "X-API-KEY": SERPER_API_KEY,
                 "Content-Type": "application/json"
             }
-            payload = {"q": cleaned_query, "gl": "us", "hl": "en"}
             res = requests.post(url, headers=headers, json=payload, timeout=10)
             if res.status_code == 200:
                 data = res.json()
+                # Extract and cache candidate commercial title
+                candidate_title = ""
+                for itm in data.get("images", []):
+                    t = itm.get("title")
+                    if t and len(t) > 5:
+                        clean_t = re.sub(r'^(Buy|Shop|Order)\s+', '', t, flags=re.IGNORECASE)
+                        clean_t = re.sub(r'(@|\|)\s*(Nike|Adidas|Puma|Amazon|eBay|StockX).*$', '', clean_t, flags=re.IGNORECASE).strip()
+                        if len(clean_t) > 6:
+                            candidate_title = clean_t
+                            break
+
+                meta_file = target_folder / "meta.json"
+                if candidate_title and not meta_file.exists():
+                    try:
+                        with open(meta_file, "w", encoding="utf-8") as mf:
+                            json.dump({"title": candidate_title, "sku": cleaned_query}, mf, indent=2)
+                    except Exception:
+                        pass
+
                 for item in data.get("images", [])[:10]:
                     u = item.get("imageUrl")
                     if u and u.startswith("http") and u not in img_urls:
@@ -157,6 +176,54 @@ def fetch_product_image(reference: str) -> str | None:
     if res["images"]:
         return res["images"][0]
     return None
+
+def get_product_commercial_title(sku: str) -> str:
+    """
+    Returns commercial title from meta.json if available, or queries Serper once.
+    Falls back to SKU if not found.
+    """
+    cleaned_query, _ = parse_sku_and_size(sku)
+    parent_safe = "".join(c if c.isalnum() else "_" for c in cleaned_query.strip())
+    raw_safe = "".join(c if c.isalnum() else "_" for c in sku.strip())
+
+    for folder_name in (parent_safe, raw_safe):
+        meta_file = IMAGES_DIR / folder_name / "meta.json"
+        if meta_file.exists():
+            try:
+                with open(meta_file, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    if data.get("title"):
+                        return data["title"]
+            except Exception:
+                pass
+
+    if SERPER_API_KEY:
+        try:
+            url = "https://google.serper.dev/images"
+            headers = {"X-API-KEY": SERPER_API_KEY, "Content-Type": "application/json"}
+            payload = {"q": cleaned_query, "gl": "us", "hl": "en"}
+            res = requests.post(url, headers=headers, json=payload, timeout=8)
+            if res.status_code == 200:
+                data = res.json()
+                for itm in data.get("images", []):
+                    t = itm.get("title")
+                    if t and len(t) > 5:
+                        clean_t = re.sub(r'^(Buy|Shop|Order)\s+', '', t, flags=re.IGNORECASE)
+                        clean_t = re.sub(r'(@|\|)\s*(Nike|Adidas|Puma|Amazon|eBay|StockX).*$', '', clean_t, flags=re.IGNORECASE).strip()
+                        if len(clean_t) > 6:
+                            folder = IMAGES_DIR / parent_safe
+                            folder.mkdir(parents=True, exist_ok=True)
+                            try:
+                                with open(folder / "meta.json", "w", encoding="utf-8") as mf:
+                                    json.dump({"title": clean_t, "sku": cleaned_query}, mf, indent=2)
+                            except Exception:
+                                pass
+                            return clean_t
+        except Exception:
+            pass
+
+    return cleaned_query
+
 
 
 
