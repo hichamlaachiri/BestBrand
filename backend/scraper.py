@@ -85,6 +85,8 @@ def fetch_product_images(reference: str, max_images: int = 3) -> dict:
 
     img_urls = []
 
+    search_term = f"Nike {cleaned_query}" if not any(b in cleaned_query.lower() for b in ("nike", "adidas", "puma", "jordan")) else cleaned_query
+
     # 1. Try Serper API (Google Images) if API key is present
     if SERPER_API_KEY:
         try:
@@ -93,6 +95,7 @@ def fetch_product_images(reference: str, max_images: int = 3) -> dict:
                 "X-API-KEY": SERPER_API_KEY,
                 "Content-Type": "application/json"
             }
+            payload = {"q": search_term, "gl": "us", "hl": "en"}
             res = requests.post(url, headers=headers, json=payload, timeout=10)
             if res.status_code == 200:
                 data = res.json()
@@ -125,7 +128,7 @@ def fetch_product_images(reference: str, max_images: int = 3) -> dict:
     # 2. Fallback / supplement with Bing Images scraper
     if len(img_urls) < max_images:
         log("  ℹ️ Fetching additional candidates from Bing image search...")
-        search_url = f"https://www.bing.com/images/search?q={requests.utils.quote(cleaned_query)}"
+        search_url = f"https://www.bing.com/images/search?q={requests.utils.quote(search_term)}"
         try:
             response = requests.get(search_url, headers=HEADERS, timeout=10)
             if response.status_code == 200:
@@ -156,7 +159,17 @@ def fetch_product_images(reference: str, max_images: int = 3) -> dict:
                     image = image.convert("RGB")
                 
                 image.save(target_path, "JPEG", quality=92)
-                log(f"  ✅ Image #{img_idx} saved to: {target_path}")
+                
+                # Gemini AI Vision verification
+                from backend.gemini_assistant import is_valid_fashion_image
+                if not is_valid_fashion_image(str(target_path)):
+                    try:
+                        target_path.unlink()
+                    except Exception:
+                        pass
+                    continue
+
+                log(f"  ✅ Image #{img_idx} verified & saved: {target_path}")
                 downloaded_paths.append(str(target_path))
                 img_idx += 1
         except Exception as e:

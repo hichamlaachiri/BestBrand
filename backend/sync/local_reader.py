@@ -5,13 +5,16 @@ from pathlib import Path
 from backend.config import DATA_DIR, IMAGES_DIR, log
 from backend.scraper import parse_sku_and_size
 
+import struct
+
 ARTICLE_FIC = DATA_DIR / "Article.FIC"
 PRIX_FIC = DATA_DIR / "prix.FIC"
 
 def parse_prices_from_db() -> dict[str, float]:
     """
-    Parses prix.FIC and returns a dictionary of SKU -> Price.
-    Uses the 360-byte stride record layout of HyperFileSQL.
+    Parses prix.FIC and returns a dictionary of SKU -> Exact Retail Price (TTC in MAD).
+    GestCaisse HyperFileSQL stores 64-bit micro-unit integers (val / 1e6)
+    with the retail price located at rec[329:337].
     """
     if not PRIX_FIC.exists():
         return {}
@@ -21,22 +24,25 @@ def parse_prices_from_db() -> dict[str, float]:
         with open(PRIX_FIC, "rb") as f:
             data = f.read()
 
-        # Find all SKU references in prix.FIC
-        matches = [m.start() for m in re.finditer(b'[A-Z0-9]{4,8}[- ][A-Z0-9]{3,5}', data)]
-        for idx in matches:
-            rec = data[idx-10:idx+350]
-            sku_raw = data[idx:idx+30].decode('latin1', 'ignore').split('\x00')[0].strip()
+        matches = list(re.finditer(b'[A-Z0-9]{4,8}[- ][A-Z0-9]{3,5}', data))
+        for m in matches:
+            idx = m.start()
+            rec = data[idx:idx+360]
+            sku_raw = rec[:30].decode('latin1', 'ignore').split('\x00')[0].strip()
             if not sku_raw:
                 continue
 
-            # In GestCaisse, price is encoded in byte 322 or BCD/int
-            # E.g. byte 322 has values like 79, 89, 69 for 790/890/690 DH
-            if len(rec) >= 330:
-                raw_byte = rec[322]
-                if 10 <= raw_byte <= 250:
-                    # In apparel retail, 79 -> 790 DH / 79 EUR
-                    # We store the base value
-                    prices[sku_raw.upper()] = float(raw_byte * 10)
+            clean_ref = re.sub(r'[\s;\.]+$', '', sku_raw).strip().upper()
+            parent_sku, _ = parse_sku_and_size(clean_ref)
+
+            if len(rec) >= 337:
+                raw_int = struct.unpack('<q', rec[329:337])[0]
+                price_ttc = raw_int / 1000000.0
+                if 20.0 <= price_ttc <= 15000.0 and raw_int != 4294967296:
+                    prices[clean_ref] = float(price_ttc)
+                    if parent_sku not in prices or prices[parent_sku] == 0:
+                        prices[parent_sku] = float(price_ttc)
+
     except Exception as e:
         log(f"⚠️ Error parsing prix.FIC: {e}")
 

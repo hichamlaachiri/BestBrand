@@ -7,6 +7,7 @@ from backend.config import STATE_FILE, SYNC_INTERVAL_SECONDS, ENABLE_AUTO_IMAGE_
 from backend.sync.local_reader import get_local_catalog, get_grouped_catalog, compute_catalog_hash
 from backend.sync.ecommerce_client import WooCommerceBridgeClient
 from backend.scraper import get_product_commercial_title
+from backend.gemini_assistant import enrich_product_with_ai, filter_apparel_images
 
 def determine_categories(title: str, variations: list[dict]) -> list[dict]:
     """Auto-detects WooCommerce categories from shoe sizes or apparel keywords."""
@@ -112,23 +113,36 @@ class LocalSyncAgent:
                 self._save_state()
             return False
 
-        # Image Handling: If local images exist and need upload
-        image_urls = []
-        if ENABLE_AUTO_IMAGE_UPLOAD and item.get("images"):
-            for img_path in item["images"][:3]:
-                uploaded = self.client.upload_media_image(img_path, caption=item["parent_sku"])
-                if uploaded and uploaded.get("url"):
-                    image_urls.append(uploaded["url"])
-
         parent_sku = item["parent_sku"]
-        commercial_title = get_product_commercial_title(parent_sku)
-        if commercial_title == parent_sku:
+        candidate_title = get_product_commercial_title(parent_sku)
+
+        # Gemini 3.6 Flash AI Enrichment (Official title, category, description)
+        ai_meta = enrich_product_with_ai(parent_sku, candidate_title)
+        clean_ai_title = ai_meta.get("title") or candidate_title or parent_sku
+        if clean_ai_title.upper() == parent_sku.upper():
             final_title = parent_sku
         else:
-            final_title = f"{commercial_title} ({parent_sku})"
+            final_title = f"{clean_ai_title} ({parent_sku})"
 
+        ai_cat_name = str(ai_meta.get("category", "Sportswear")).lower()
+        cat_map = {
+            "hoodies": [{"id": 20, "name": "Hoodies"}, {"id": 21, "name": "Sportswear"}],
+            "sneakers": [{"id": 19, "name": "Sneakers"}],
+            "t-shirts": [{"id": 22, "name": "T-Shirts"}, {"id": 21, "name": "Sportswear"}],
+            "sportswear": [{"id": 21, "name": "Sportswear"}],
+            "pants": [{"id": 21, "name": "Sportswear"}]
+        }
         variations = item.get("variations", [])
-        categories = determine_categories(final_title, variations)
+        categories = cat_map.get(ai_cat_name, determine_categories(final_title, variations))
+
+        # Image Handling: verify with Gemini Vision before upload
+        image_urls = []
+        if ENABLE_AUTO_IMAGE_UPLOAD and item.get("images"):
+            verified_images = filter_apparel_images(item["images"])
+            for img_path in verified_images[:3]:
+                uploaded = self.client.upload_media_image(img_path, caption=parent_sku)
+                if uploaded and uploaded.get("url"):
+                    image_urls.append(uploaded["url"])
 
         product_payload = {
             "sku": parent_sku,
@@ -136,6 +150,7 @@ class LocalSyncAgent:
             "price": item.get("price", 0.0),
             "barcode": item.get("barcode", ""),
             "article_code": item.get("article_code", ""),
+            "description": ai_meta.get("description", ""),
             "image_urls": image_urls,
             "variations": variations,
             "categories": categories
@@ -248,6 +263,35 @@ class LocalSyncAgent:
 
         log(f"\n✨ Full Catalog Sync Complete! Created: {created_total} | Updated: {updated_total}")
         return {"success": True, "created": created_total, "updated": updated_total}
+
+    def sync_catalog_ai(self, limit: int = None, only_with_images: bool = True) -> int:
+        """
+        Synchronizes products using Gemini 3.6 Flash AI enrichment, 
+        Vision image filtering, and variable size dropdowns.
+        """
+        grouped = get_grouped_catalog()
+        items = list(grouped.values())
+        if only_with_images:
+            items = [item for item in items if item.get("images")]
+        
+        if limit:
+            items = items[:limit]
+
+        log(f"\n🚀 Starting Gemini AI Catalog Sync for {len(items)} products (Images required: {only_with_images})...")
+        success_count = 0
+        for idx, item in enumerate(items, 1):
+            sku = item.get("parent_sku")
+            log(f"\n📦 [{idx}/{len(items)}] Processing {sku} with Gemini AI...")
+            try:
+                ok = self._sync_product_item(item)
+                if ok:
+                    success_count += 1
+                time.sleep(1.5)  # Safe rate limit for Gemini API & WordPress Media
+            except Exception as e:
+                log(f"  ❌ Error syncing {sku}: {e}")
+        
+        log(f"\n✨ Gemini AI Sync Finished: {success_count}/{len(items)} products synced successfully to WooCommerce!")
+        return success_count
 
     def _sync_loop(self):
         """Background monitoring thread."""

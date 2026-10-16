@@ -36,6 +36,17 @@ def main():
         print_status(sync_agent)
         return
 
+    if "--sync-ai" in sys.argv or "-ai" in sys.argv:
+        print("=== 🤖 Gemini AI Catalog Synchronization Mode ===")
+        # Check if user specified a limit
+        limit = None
+        for arg in sys.argv[1:]:
+            if arg.isdigit():
+                limit = int(arg)
+                break
+        sync_agent.sync_catalog_ai(limit=limit, only_with_images=True)
+        return
+
     if "--sync-web" in sys.argv or "-w" in sys.argv:
         print("=== 🌐 Full Web Catalog Sync Mode ===")
         sync_agent.sync_all_catalog()

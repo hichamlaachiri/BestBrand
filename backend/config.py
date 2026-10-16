@@ -43,6 +43,9 @@ ENABLE_AUTO_IMAGE_UPLOAD = os.getenv("ENABLE_AUTO_IMAGE_UPLOAD", "true").lower()
 # Serper.dev Image Scraping API Key
 SERPER_API_KEY = os.getenv("SERPER_API_KEY", "403cba5715e01a9c9b102862b0c8eb498d5da3bf")
 
+# Google Gemini AI Vision & Metadata API
+GEMINI_API_KEY = os.getenv("GEMINI_API_KEY", "").strip()
+
 # Performance Tuning (Low-Resource Mode for older POS hardware)
 LOW_RESOURCE_MODE = os.getenv("LOW_RESOURCE_MODE", "true").lower() in ("true", "1", "yes")
 

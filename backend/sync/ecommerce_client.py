@@ -123,7 +123,15 @@ class WooCommerceBridgeClient:
         # Categories
         categories = product_data.get("categories")
         if categories:
-            payload["categories"] = [{"id": c} if isinstance(c, int) else {"name": str(c)} for c in categories]
+            cat_list = []
+            for c in categories:
+                if isinstance(c, dict):
+                    cat_list.append({"id": c["id"]} if "id" in c else {"name": c.get("name", "")})
+                elif isinstance(c, int):
+                    cat_list.append({"id": c})
+                else:
+                    cat_list.append({"name": str(c)})
+            payload["categories"] = cat_list
 
         # Attributes (Taille dropdown)
         if unique_sizes:

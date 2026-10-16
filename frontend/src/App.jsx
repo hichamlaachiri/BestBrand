@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import './App.css';
 
-const STORE_API_URL = 'https://ghostwhite-chamois-737385.hostingersite.com/wp-json/wc/store/v1/products';
+const STORE_API_URL = '/wp-json/wc/store/v1/products';
 
 export default function App() {
   const [products, setProducts] = useState([]);
@@ -100,12 +100,12 @@ export default function App() {
       },
       {
         id: 55,
-        name: "Nike Tech Tracksuit Top - Essential Edition",
+        name: "Nike Tech Fleece Tracksuit",
         sku: "HI4302-012",
         price: "790.00",
         images: [
-          "https://ghostwhite-chamois-737385.hostingersite.com/wp-content/uploads/2026/10/HI4302_012_XS_1-scaled.jpg",
-          "https://ghostwhite-chamois-737385.hostingersite.com/wp-content/uploads/2026/10/HI4302_012_XS_2.jpg"
+          "https://ghostwhite-chamois-737385.hostingersite.com/wp-content/uploads/2026/10/HI4302_012_1-4.jpg",
+          "https://ghostwhite-chamois-737385.hostingersite.com/wp-content/uploads/2026/10/HI4302_012_2-4.jpg"
         ],
         categories: ["sportswear", "hoodies"],
         sizes: ["XS", "S", "M", "L"],
