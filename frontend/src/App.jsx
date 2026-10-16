@@ -9,9 +9,7 @@ import {
   CheckCircle2, 
   RotateCcw, 
   ShieldCheck, 
-  Crown,
-  Layers,
-  Sparkles
+  Layers
 } from 'lucide-react';
 import './App.css';
 
@@ -177,14 +175,14 @@ export default function App() {
       {/* Toast Notification */}
       {toast && (
         <div className="toast-msg animate-slide-in">
-          <CheckCircle2 size={20} color="var(--gold-primary)" />
+          <CheckCircle2 size={20} color="#ffffff" />
           <span>{toast}</span>
         </div>
       )}
 
       {/* Top Banner Bar */}
-      <div style={{ background: '#000', borderBottom: '1px solid rgba(212, 175, 55, 0.25)', padding: '0.5rem 1rem', textAlign: 'center', fontSize: '0.78rem', fontWeight: 700, color: 'var(--gold-light)', letterSpacing: '0.06em' }}>
-        ⚜️ BEST BRAND OFFICIAL STORE • SYNCHRONISATION EN DIRECT SMART GESTCAISSE • LIVRAISON PARTOUT AU MAROC
+      <div style={{ background: '#070709', borderBottom: '1px solid var(--border-subtle)', padding: '0.45rem 1rem', textAlign: 'center', fontSize: '0.78rem', fontWeight: 600, color: 'var(--text-secondary)', letterSpacing: '0.04em' }}>
+        BEST BRAND OFFICIAL STORE • SYNCHRONISATION EN DIRECT DU STOCK SMART GESTCAISSE • LIVRAISON PARTOUT AU MAROC
       </div>
 
       {/* Sticky Navigation Bar */}
@@ -252,17 +250,16 @@ export default function App() {
         </div>
       </header>
 
-      {/* Hero Athletic Luxury Banner */}
+      {/* Hero Athletic Monochrome Banner */}
       <section className="hero-section">
         <div className="container-max">
           <div className="hero-content animate-fade-in">
             <div className="hero-pill-tag">
-              <Crown size={15} color="var(--gold-light)" />
-              <span>THE GOLD STANDARD IN ATHLETIC LUXURY • SMARTBASE-2026</span>
+              <span>SMARTBASE-2026 INVENTORY VERIFIED</span>
             </div>
             <h2 className="title-athletic hero-title">
               CROWNED BY EXCELLENCE.
-              <span className="text-gold-gradient">SUPREME SPORTSWEAR.</span>
+              <span>SUPREME SPORTSWEAR.</span>
             </h2>
             <p className="hero-subtitle">
               L'excellence du sportswear et du streetwear de marque. Tech Fleece haute précision, pièces d'exception et sneakers vérifiés, reliés en temps réel aux stocks physiques de votre caisse.
@@ -310,20 +307,20 @@ export default function App() {
             </button>
           </div>
 
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>
-            AFFICHAGE : <span style={{ color: 'var(--gold-light)' }}>{filteredProducts.length} ARTICLES</span> EN STOCK
+          <div style={{ fontSize: '0.82rem', color: 'var(--text-muted)', fontWeight: 700, letterSpacing: '0.04em' }}>
+            AFFICHAGE : <span style={{ color: '#ffffff' }}>{filteredProducts.length} ARTICLES</span> EN STOCK
           </div>
         </div>
 
         {/* Products Grid */}
         {loading ? (
           <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <div style={{ display: 'inline-block', width: 44, height: 44, border: '3px solid rgba(212,175,55,0.15)', borderTopColor: 'var(--gold-primary)', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ marginTop: '1.25rem', fontWeight: 700, color: 'var(--gold-light)' }}>Connexion au catalogue live...</p>
+            <div style={{ display: 'inline-block', width: 40, height: 40, border: '3px solid rgba(255,255,255,0.1)', borderTopColor: '#ffffff', borderRadius: '50%', animation: 'spin 0.8s linear infinite' }} />
+            <p style={{ marginTop: '1.25rem', fontWeight: 600, color: 'var(--text-secondary)' }}>Connexion au catalogue live...</p>
           </div>
         ) : filteredProducts.length === 0 ? (
           <div style={{ padding: '6rem 0', textAlign: 'center', color: 'var(--text-secondary)' }}>
-            <Layers size={48} style={{ opacity: 0.3, marginBottom: '1rem', color: 'var(--gold-primary)' }} />
+            <Layers size={48} style={{ opacity: 0.3, marginBottom: '1rem' }} />
             <h3>Aucun produit trouvé</h3>
             <p style={{ color: 'var(--text-muted)' }}>Essayez de modifier votre recherche ou filtre.</p>
           </div>
@@ -337,7 +334,7 @@ export default function App() {
               >
                 <div className="card-media">
                   <div className="card-badge">
-                    <span className="badge-tag new">BEST BRAND</span>
+                    <span className="badge-tag new">NEW IN</span>
                   </div>
                   <img 
                     src={prod.images[0] || 'https://images.unsplash.com/photo-1556906781-9a412961c28c?w=600&auto=format&fit=crop&q=80'} 
@@ -417,7 +414,7 @@ export default function App() {
               <div className="modal-info-col">
                 <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', marginBottom: '0.5rem' }}>
                   <span className="badge-tag sync">
-                    <Crown size={12} color="var(--gold-light)" /> SMARTBASE-2026 IN STOCK
+                    SMARTBASE-2026 IN STOCK
                   </span>
                 </div>
 
@@ -431,7 +428,7 @@ export default function App() {
                 {/* Size Selector Pills */}
                 <div className="size-select-label">
                   <span>SÉLECTIONNEZ VOTRE TAILLE (POINTURE / TAILLE)</span>
-                  <span style={{ color: 'var(--gold-light)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 700 }}>Guide des tailles</span>
+                  <span style={{ color: 'var(--text-secondary)', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600 }}>Guide des tailles</span>
                 </div>
 
                 <div className="size-pills-wrap">
@@ -449,7 +446,7 @@ export default function App() {
                 {/* Add to Bag CTA */}
                 <button 
                   className="btn-primary" 
-                  style={{ width: '100%', padding: '1.15rem', fontSize: '1.05rem', marginBottom: '1.5rem' }}
+                  style={{ width: '100%', padding: '1.15rem', fontSize: '1.02rem', marginBottom: '1.5rem' }}
                   onClick={() => {
                     handleAddToBag(selectedProduct, selectedSize);
                     setSelectedProduct(null);
@@ -461,11 +458,11 @@ export default function App() {
                 {/* Feature Highlights */}
                 <div style={{ borderTop: '1px solid var(--border-subtle)', paddingTop: '1.25rem', display: 'flex', flexDirection: 'column', gap: '0.75rem', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <ShieldCheck size={18} color="var(--gold-primary)" />
+                    <ShieldCheck size={18} color="#ffffff" />
                     <span>Produit 100% Authentique & Vérifié en Magasin</span>
                   </div>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '0.6rem' }}>
-                    <RotateCcw size={18} color="var(--gold-primary)" />
+                    <RotateCcw size={18} color="#ffffff" />
                     <span>Échange de taille garanti sous 7 jours</span>
                   </div>
                 </div>
@@ -489,7 +486,7 @@ export default function App() {
             <div className="cart-items-scroll">
               {cart.length === 0 ? (
                 <div style={{ padding: '4rem 1rem', textAlign: 'center', color: 'var(--text-muted)' }}>
-                  <ShoppingBag size={48} style={{ opacity: 0.25, marginBottom: '1rem', color: 'var(--gold-primary)' }} />
+                  <ShoppingBag size={48} style={{ opacity: 0.25, marginBottom: '1rem' }} />
                   <p>Votre panier est vide pour le moment.</p>
                 </div>
               ) : (
@@ -504,7 +501,7 @@ export default function App() {
                       <h4 className="cart-item-title">{item.product.name}</h4>
                       <span className="cart-item-meta">Taille : {item.size} • {item.product.sku}</span>
                       <div className="cart-item-actions">
-                        <strong style={{ color: 'var(--gold-light)' }}>{item.product.price} MAD</strong>
+                        <strong style={{ color: '#ffffff' }}>{item.product.price} MAD</strong>
                         <div className="qty-control">
                           <button className="qty-btn" onClick={() => updateCartQty(item.cartItemId, -1)}>
                             <Minus size={14} />
@@ -545,12 +542,12 @@ export default function App() {
       )}
 
       {/* Footer */}
-      <footer style={{ borderTop: '1px solid rgba(212, 175, 55, 0.2)', padding: '3.5rem 0', background: '#040405', marginTop: '4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
+      <footer style={{ borderTop: '1px solid var(--border-subtle)', padding: '3.5rem 0', background: '#070709', marginTop: '4rem', fontSize: '0.85rem', color: 'var(--text-muted)' }}>
         <div className="container-max" style={{ display: 'flex', flexWrap: 'wrap', justifyContent: 'space-between', gap: '2rem' }}>
           <div>
             <div className="brand-logo" style={{ marginBottom: '0.85rem' }}>
               <img src="/logo.jpg" alt="BEST BRAND" className="brand-logo-img" />
-              <h2 style={{ fontFamily: 'var(--font-athletic)', fontSize: '1.8rem', background: 'var(--gold-gradient)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent' }}>BEST BRAND</h2>
+              <h2 style={{ fontFamily: 'var(--font-athletic)', fontSize: '1.8rem', color: '#ffffff' }}>BEST BRAND</h2>
             </div>
             <p style={{ maxWidth: 350, lineHeight: 1.6 }}>
               Boutique officielle de streetwear & sportswear haute performance. Articles certifiés authentiques, directement synchronisés avec le système de caisse GestCaisse.
@@ -558,14 +555,14 @@ export default function App() {
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--gold-light)', fontWeight: 800, marginBottom: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Collections</h4>
+            <h4 style={{ color: '#ffffff', fontWeight: 800, marginBottom: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Collections</h4>
             <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setSelectedCategory('all')}>Toutes les sorties</p>
             <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setSelectedCategory('hoodies')}>Tech Fleece & Vestes</p>
             <p style={{ marginBottom: '0.5rem', cursor: 'pointer' }} onClick={() => setSelectedCategory('sneakers')}>Sneakers</p>
           </div>
 
           <div>
-            <h4 style={{ color: 'var(--gold-light)', fontWeight: 800, marginBottom: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Infrastructure</h4>
+            <h4 style={{ color: '#ffffff', fontWeight: 800, marginBottom: '0.85rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}>Infrastructure</h4>
             <p style={{ marginBottom: '0.5rem' }}>• SMART GestCaisse POS Sync</p>
             <p style={{ marginBottom: '0.5rem' }}>• WooCommerce Headless REST API</p>
             <p style={{ marginBottom: '0.5rem' }}>• Hostinger Cloud Infrastructure</p>
